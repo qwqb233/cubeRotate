@@ -12,7 +12,8 @@
 #include <cmath>
 #include <Wire.h>
 
-#include "../include/cube.h"
+#include "../include/Matrix.h"
+#include "../include/solid.h"
  
 TFT_eSPI tft = TFT_eSPI(); // Invoke library, pins defined in User_Setup.h
  
@@ -32,8 +33,6 @@ static uint8_t conv2d(const char *p)
 }
  
 uint8_t hh = conv2d(__TIME__), mm = conv2d(__TIME__ + 3), ss = conv2d(__TIME__ + 6); // Get H, M, S from compile time
- 
-Cube cube_main(20, 20, 20, 30, 30, TFT_RED);
 /* rotation_3d rotation_main = {
   .x = PI/4,
   .y = PI/4,
@@ -41,6 +40,8 @@ Cube cube_main(20, 20, 20, 30, 30, TFT_RED);
 }; */
 //Cube cube_main2(20, 20, 20, 40, 30,rotation_main, TFT_GREEN);
 
+Sphere test(30,30,30,2);
+double pi = 3.14159265358979323846;
 void setup(void)
 {
   tft.init();
@@ -50,17 +51,21 @@ void setup(void)
   tft.setTextColor(TFT_YELLOW, TFT_BLACK); // Note: the new fonts do not draw the background colour
  
   targetTime = millis() + 1000;
+  
+  test.rotation_to(0,pi/3,pi/3);
 
   Serial.begin(115200);
 }
 
 void loop()
 {
-    cube_main.showCube(&tft);
-    //cube_main2.showCube(&tft);
-    char buffer[1024];
-    sprintf(buffer,"cube point 2:x:%d y:%d\r\n",cube_main.cube.d2_point[2].x,cube_main.cube.d2_point[2].y);
-    Serial.println(buffer);
+
+  test.rotation_to(0,pi/12,0);
+  test.tft_draw(tft);
+
+  delay(30);
+
+  //Serial.printf(""); 
 }
  
 /* void loop()
