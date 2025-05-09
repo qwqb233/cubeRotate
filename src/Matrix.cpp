@@ -1,6 +1,8 @@
 //
 // Created by qwqb233 on 2025/5/5.
 //
+
+//TODO:智能指针重构
 #include <Arduino.h>
 #include <Wire.h>
 #include <iostream>
@@ -22,7 +24,6 @@ Matrix::Matrix(int * dims,int dim_size,std::vector<double> data_in) : dims(new i
     this -> data = data_in;
     this -> data_size = data_in.size();
     this -> dim_size = dim_size;
-    this -> dims = new int[dim_size];
     for(int i = 0;i < dim_size;i++)
     {
         this -> dims[i] = dims[i];
@@ -168,7 +169,14 @@ Matrix Matrix::operator*(const Matrix& other)
     int rows1 = this->dims[0];
     int cols1 = this->dims[1];
     int cols2 = other.dims[1];
-    Matrix result(new int[2]{rows1,cols2},2,new double[rows1 * cols2]{});
+
+    int * dims = new int[2]{rows1,cols2};
+    double * data = new double[rows1 * cols2]{};
+
+    Matrix result(dims,2,data);
+
+    delete[] data;
+    delete[] dims;
 
     for (int i = 0; i < rows1; ++i) {
         for (int j = 0; j < cols2; ++j) {
@@ -241,6 +249,10 @@ Matrix Matrix::operator^(double power)
 
 Matrix& Matrix::operator=(const Matrix& other)
 {
+    if(this == &other)
+    {
+        return *this;
+    }
     this->data.clear();
     delete[] this->dims;
 

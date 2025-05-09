@@ -12,6 +12,8 @@
 #include <cmath>
 #include <Wire.h>
 
+#include "esp_system.h"
+
 #include "../include/Matrix.h"
 #include "../include/solid.h"
  
@@ -23,7 +25,28 @@ byte omm = 99;
 bool initial = 1;
 byte xcolon = 0;
 unsigned int colour = 0;
- 
+
+#define TOTAL_HEAP_SIZE (400 * 1024) // 根据实际芯片型号调整
+
+void print_memory_usage() {
+    size_t free_heap = esp_get_free_heap_size();
+    size_t used_heap = TOTAL_HEAP_SIZE - free_heap;
+    float usage_percent = (float)used_heap / TOTAL_HEAP_SIZE * 100;
+
+    printf("memory usage: %.2f%% (used %d bit / total %d bit)\r\n", 
+           usage_percent, used_heap, TOTAL_HEAP_SIZE);
+}
+
+void print_memory_info() {
+  // 获取内部堆的空闲内存
+  size_t free_internal = esp_get_free_internal_heap_size();
+  Serial.printf("free_memory: %d bit\r\n", free_internal);
+
+  // 获取总空闲内存（如果启用了外部SPIRAM）
+  size_t free_total = esp_get_free_heap_size();
+  Serial.printf("total_memory: %d bit\r\n", free_total);
+}
+
 static uint8_t conv2d(const char *p)
 {
   uint8_t v = 0;
@@ -55,6 +78,8 @@ void setup(void)
   test.rotation_to(0,pi/3,pi/3);
 
   Serial.begin(115200);
+
+  print_memory_info();
 }
 
 void loop()
@@ -62,7 +87,7 @@ void loop()
 
   test.rotation_to(0,pi/12,0);
   test.tft_draw(tft);
-
+  print_memory_usage();
   delay(30);
 
   //Serial.printf(""); 

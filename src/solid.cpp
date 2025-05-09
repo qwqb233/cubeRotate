@@ -1,6 +1,8 @@
 //
 // Created by qwqb233 on 2025/5/5.
 //
+
+//TODO:智能指针重构
 #include <iostream>
 #include <cmath>
 #include <Arduino.h>
@@ -9,6 +11,7 @@
 #include <SPI.h>
 
 #include "../include/solid.h"
+#include "../include/Logger.h"
 
 /*
  * 初始化旋转矩阵和平移矩阵，默认不旋转
@@ -48,15 +51,18 @@ void Solid::init_matrix(Solid * solid,point_3d shape_center)
  */
 void Solid::point_3d_to_2d(point_3d *points, point_2d *points_2d, int num_points) const
 {
+    int * dims = new int[2]{3,1};
     for(int i = 0;i < this->num_points;i++)
     {
-        Matrix point_pos_matrix(new int[2]{3,1},2,new double[3]{this->points[i].x,this->points[i].y,this->points[i].z});
+        double * new_data = new double[3]{this->points[i].x,this->points[i].y,this->points[i].z};
+        Matrix point_pos_matrix(dims,2,new_data);
         point_pos_matrix = *this->rotation_matrix * point_pos_matrix;
         point_pos_matrix = *this->translation_matrix + point_pos_matrix;
         std::vector<double> data = point_pos_matrix.get_data();
         this->points_temp[i] = {data[0],data[1],data[2]};
+        delete[] new_data;
     }
-
+    delete[] dims;
     for(int i = 0;i < num_points;i++)
     {
         points_2d[i].x = points[i].z;
@@ -68,15 +74,23 @@ void Solid::point_3d_to_2d(point_3d *points, point_2d *points_2d, int num_points
  */
 void Solid::point_3d_to_2d() const
 {
+    int * dims = new int[2]{3,1};
     for(int i = 0;i < this->num_points;i++)
-    {
-        Matrix point_pos_matrix(new int[2]{3,1},2,new double[3]{this->points[i].x,this->points[i].y,this->points[i].z});
+    {   
+        // Serial.printf("start new matrix\r\n");
+        double * new_data = new double[3]{this->points[i].x,this->points[i].y,this->points[i].z};
+        Matrix point_pos_matrix(dims,2,new_data);
+        // Serial.printf("new matrix\r\n");
+        // Serial.printf("point_pos_matrix: %f %f %f\r\n",point_pos_matrix.get_data()[0],point_pos_matrix.get_data()[1],point_pos_matrix.get_data()[2]);
+        // Serial.printf("rotation_matrix: %f %f %f\r\n",this->rotation_matrix->get_data()[0],this->rotation_matrix->get_data()[1],this->rotation_matrix->get_data()[2]);
+        
         point_pos_matrix = *this->rotation_matrix * point_pos_matrix;
         point_pos_matrix = *this->translation_matrix + point_pos_matrix;
         std::vector<double> data = point_pos_matrix.get_data();
         this->points_temp[i] = {data[0],data[1],data[2]};
+        delete[] new_data;
     }
-
+    delete[] dims;
     for(int i = 0;i < this->num_points;i++)
     {
         this->points_2d[i].x = this->points_temp[i].z;
@@ -171,6 +185,8 @@ Solid::~Solid() {
     delete this->rotation_matrix;
     delete this->translation_matrix;
     delete[] this->points;
+    delete[] this->points_2d;
+    delete[] this->points_temp;
 }
 
 /*
@@ -210,14 +226,18 @@ Sphere::Sphere(double W,double D,double H,int color) : Solid(nullptr,0,color)
         std::cout << "Error: rotation_matrix or translation_matrix is nullptr" << std::endl;
     }
 
+    int * dims = new int[2]{3,1};
     for(int i = 0;i < this->num_points;i++)
     {
-        Matrix point_pos_matrix(new int[2]{3,1},2,new double[3]{this->points[i].x,this->points[i].y,this->points[i].z});
+        double * new_data = new double[3]{this->points[i].x,this->points[i].y,this->points[i].z};
+        Matrix point_pos_matrix(dims,2,new_data);
         point_pos_matrix = *this->rotation_matrix * point_pos_matrix;
         point_pos_matrix = *this->translation_matrix + point_pos_matrix;
         std::vector<double> data = point_pos_matrix.get_data();
         this->points_temp[i] = {data[0],data[1],data[2]};
+        delete[] new_data;
     }
+    delete[] dims;
 
     this->point_3d_to_2d();
 }
@@ -229,17 +249,46 @@ Sphere::Sphere(double W,double D,double H,int color) : Solid(nullptr,0,color)
  */
 void Sphere::moving_to(double x,double y)
 {
-    Matrix translation_matrix(new int[3]{3,1},2,new double[3]{0,y,x});
+    int * dims = new int[3]{3,1};
+    double * new_data = new double[3]{0,y,x};
+    Matrix translation_matrix(dims,2,new_data);
     *this->translation_matrix = translation_matrix;
+    delete[] new_data;
+    delete[] dims;
 }
-
 void Sphere::rotation_to(double x_angle,double y_angle,double z_angle)
 {
-    Matrix x_rotation_matrix(new int[2]{3,3},2,new double[9]{1,0,0,0,cos(x_angle),-sin(x_angle),0,sin(x_angle),cos(x_angle)});
-    Matrix y_rotation_matrix(new int[2]{3,3},2,new double[9]{cos(y_angle),0,sin(y_angle),0,1,0,-sin(y_angle),0,cos(y_angle)});
-    Matrix z_rotation_matrix(new int[2]{3,3},2,new double[9]{cos(z_angle),-sin(z_angle),0,sin(z_angle),cos(z_angle),0,0,0,1});
+    double pi = 3.14159265358979323846;
+    static double x_angle_sum = 0 ,y_angle_sum = 0, z_angle_sum = 0;
+    x_angle_sum += x_angle;
+    y_angle_sum += y_angle;
+    z_angle_sum += z_angle;
 
-    *this->rotation_matrix = *this->rotation_matrix * x_rotation_matrix * y_rotation_matrix * z_rotation_matrix;
+    if(x_angle_sum > 2*pi) x_angle_sum -= 2*pi;
+    if(x_angle_sum < -2*pi) x_angle_sum += 2*pi;
+    if(y_angle_sum > 2*pi) y_angle_sum -= 2*pi;
+    if(y_angle_sum < -2*pi) y_angle_sum += 2*pi;
+    if(z_angle_sum > 2*pi) z_angle_sum -= 2*pi;
+    if(z_angle_sum < -2*pi) z_angle_sum += 2*pi;
+
+    // Serial.printf("x_angle_sum: %f\r\n",x_angle_sum);
+    int * dims = new int[2]{3,3};
+    double * new_x_data = new double[9]{1,0,0,0,cos(x_angle_sum),-sin(x_angle_sum),0,sin(x_angle_sum),cos(x_angle_sum)};
+    Matrix x_rotation_matrix(dims,2,new_x_data);
+    delete[] new_x_data;
+    // Serial.printf("y_angle_sum: %f\r\n",y_angle_sum);
+    double * new_y_data = new double[9]{cos(y_angle_sum),0,sin(y_angle_sum),0,1,0,-sin(y_angle_sum),0,cos(y_angle_sum)};
+    Matrix y_rotation_matrix(dims,2,new_y_data);
+    delete[] new_y_data;
+    double * new_z_data = new double[9]{cos(z_angle_sum),-sin(z_angle_sum),0,sin(z_angle_sum),cos(z_angle_sum),0,0,0,1};
+    Matrix z_rotation_matrix(dims,2,new_z_data);
+    delete[] new_z_data;
+    delete[] dims;
+    // Serial.printf("rotation_matrix: %f %f %f\r\n",this->rotation_matrix->get_data()[0],this->rotation_matrix->get_data()[1],this->rotation_matrix->get_data()[2]);
+    
+    *this->rotation_matrix = x_rotation_matrix * y_rotation_matrix * z_rotation_matrix;
+    // Serial.printf("z_angle_sum: %f\r\n",z_angle_sum);
+    //*this->rotation_matrix = *this->rotation_matrix * x_rotation_matrix * y_rotation_matrix * z_rotation_matrix;
 }
 
 /*
@@ -253,7 +302,7 @@ void Sphere::draw() const
     //TODO:连接各点
     //TODO:在屏幕上绘制图像
 
-    for(int i = 0;i < this->num_points;i++)
+    /* for(int i = 0;i < this->num_points;i++)
     {
         Serial.printf("Point %d: (%f,%f,%f)\r\n",i,this->points[i].x,this->points[i].y,this->points[i].z);
         // std::cout << "Point " << i << ": (" << this->points[i].x << "," << this->points[i].y << "," << this->points[i].z << ")" << std::endl;
@@ -263,7 +312,7 @@ void Sphere::draw() const
     {
         Serial.printf("Point %d: (%f,%f)\r\n",i,this->points_2d[i].x,this->points_2d[i].y);
         // std::cout << "Point " << i << ": (" << this->points_2d[i].x << "," << this->points_2d[i].y << ")" << std::endl;
-    }
+    } */
 
     
 }
@@ -273,7 +322,6 @@ void Sphere::tft_draw(TFT_eSPI tft)
     tft.fillScreen(TFT_BLACK);
 
     this->draw();
-
     tft.drawLine(this->points_2d[0].x,this->points_2d[0].y,this->points_2d[1].x,this->points_2d[1].y,TFT_WHITE);
     tft.drawLine(this->points_2d[0].x,this->points_2d[0].y,this->points_2d[3].x,this->points_2d[3].y,TFT_WHITE);
     tft.drawLine(this->points_2d[0].x,this->points_2d[0].y,this->points_2d[4].x,this->points_2d[4].y,TFT_WHITE);
