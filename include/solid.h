@@ -49,11 +49,11 @@ class Solid  {
     COLOR_TYPE color;
 };
 
-class Sphere : private Solid {
+class Box : private Solid {
     public:
-        Sphere() = default;
-        Sphere(double W,double D,double H,COLOR_TYPE color);
-        ~Sphere() = default;
+        Box() = default;
+        Box(double W,double D,double H,COLOR_TYPE color);
+        ~Box() = default;
         void draw() const override;
         void tft_draw(TFT_eSPI tft);
         void rotation_to(double x_angle,double y_angle,double z_angle);

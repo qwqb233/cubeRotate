@@ -75,7 +75,7 @@ void setup(void)
  
   targetTime = millis() + 1000;
   
-  test.rotation_to(0,pi/3,pi/3);
+  test.rotation_to(0,0,pi/3);
 
   Serial.begin(115200);
 

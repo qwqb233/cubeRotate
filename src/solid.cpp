@@ -204,7 +204,7 @@ void Solid::draw() const
  * @param H 高度
  * @param color 颜色
  */
-Sphere::Sphere(double W,double D,double H,int color) : Solid(nullptr,0,color)
+Box::Box(double W,double D,double H,int color) : Solid(nullptr,0,color)
 {
     this->num_points = 8;
     this->points = new point_3d[8];
@@ -247,7 +247,7 @@ Sphere::Sphere(double W,double D,double H,int color) : Solid(nullptr,0,color)
  * @param x x轴偏移
  * @param y y轴偏移
  */
-void Sphere::moving_to(double x,double y)
+void Box::moving_to(double x,double y)
 {
     int * dims = new int[3]{3,1};
     double * new_data = new double[3]{0,y,x};
@@ -256,7 +256,7 @@ void Sphere::moving_to(double x,double y)
     delete[] new_data;
     delete[] dims;
 }
-void Sphere::rotation_to(double x_angle,double y_angle,double z_angle)
+void Box::rotation_to(double x_angle,double y_angle,double z_angle)
 {
     double pi = 3.14159265358979323846;
     static double x_angle_sum = 0 ,y_angle_sum = 0, z_angle_sum = 0;
@@ -294,14 +294,10 @@ void Sphere::rotation_to(double x_angle,double y_angle,double z_angle)
 /*
  * 子类Sphere的绘制函数，将Sphere对象绘制到屏幕上
  */
-void Sphere::draw() const
+void Box::draw() const
 {
     //计算平移旋转，并投影到二维画布
     this->point_3d_to_2d();
-
-    //TODO:连接各点
-    //TODO:在屏幕上绘制图像
-
     /* for(int i = 0;i < this->num_points;i++)
     {
         Serial.printf("Point %d: (%f,%f,%f)\r\n",i,this->points[i].x,this->points[i].y,this->points[i].z);
@@ -317,7 +313,7 @@ void Sphere::draw() const
     
 }
 
-void Sphere::tft_draw(TFT_eSPI tft)
+void Box::tft_draw(TFT_eSPI tft)
 {
     tft.fillScreen(TFT_BLACK);
 
